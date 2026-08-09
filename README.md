@@ -1,81 +1,47 @@
-# Railway Coinbase Paper Bot V3
+# Railway Coinbase Paper Bot V4
 
-V3 defaults to a $5,000 paper account and removes the daily trade-count cap.
+A complete rebuild for a **$5,000 paper account** with **no fixed daily trade-count cap**.
 
-Safety controls retained:
-- 10% maximum position size (about $500 initially)
-- 1% daily account loss lock (about $50 initially)
-- one open position maximum
+## Trading profile
+
+V4 is intentionally more aggressive than V2/V3 while still enforcing hard limits:
+
+- $5,000 starting paper balance
+- 20% maximum position size: up to about $1,000 initially
+- 0.5% account-risk budget per trade
+- No fixed daily trade-count maximum
 - 60-second minimum interval between entries
-- fee/spread/slippage-aware cost gate
-- hard cash and notional validation
-- paper execution only
+- One open position maximum
+- 2% daily loss shutdown: about $100 initially
+- Four consecutive losses trigger a two-hour entry lock
+- Fee, spread, slippage, volatility, trend, momentum, and volume filters
+- Fixed stop, profit target, trailing stop, and signal-reversal exits
+- Atomic state persistence on `/data`
+- Paper execution only
 
-Unlimited trade count does not force trades. Entries must still pass the strategy
-and cost filters.
+Unlimited trades means there is no arbitrary count cap. It does **not** force the
+bot to trade. Every entry must pass the signal, market-regime, cost, cooldown,
+loss-lock, cash, and risk checks.
 
-After deploying, apply the variables from `.env.example`, deploy, and click Reset
-on the dashboard to initialize the $5,000 paper balance.
+No strategy is guaranteed profitable or “win-proof.”
 
-# Railway Coinbase Paper Bot V2
+## Replace the existing Railway project
 
-This corrected version fixes the oversized-position bug and adds server-side safety checks.
-It uses live public Coinbase market data and simulated money only.
+1. Download and unzip this package.
+2. Upload all files inside the folder to the existing GitHub repository.
+3. Commit directly to `main`.
+4. Railway will redeploy automatically.
+5. Replace all Railway variables using `.env.example`.
+6. Keep the existing volume mounted at `/data`.
+7. Deploy the variable changes.
+8. Open the dashboard and confirm it says **V4**.
+9. Click **Reset** to initialize the $5,000 account.
+10. Keep Auto stopped and run one manual buy/sell sizing test.
+11. Confirm the position is no more than about $1,000.
+12. Then click Start Auto for paper testing.
 
-## Critical change
+## Real money
 
-`MAX_POSITION_PCT` is a decimal fraction. Use `0.10` for 10%, not `10`.
-The service refuses to start if this value exceeds `0.25`.
-
-## Railway variables
-
-Paste these into Railway Raw Editor:
-
-```text
-PRODUCT_ID=BTC-USD
-STARTING_CASH=250
-MAX_POSITION_PCT=0.10
-CASH_RESERVE_PCT=0.05
-FEE_PCT_PER_SIDE=0.006
-SLIPPAGE_PCT_PER_SIDE=0.0003
-POLL_SECONDS=15
-MIN_EDGE_MULTIPLE=2.5
-ENTRY_SCORE=0.62
-EXIT_SCORE=-0.10
-DAILY_LOSS_LIMIT_PCT=0.01
-MAX_TRADES_PER_DAY=8
-STOP_LOSS_PCT=0.006
-TAKE_PROFIT_PCT=0.018
-AUTO_TRADING=false
-DATA_PATH=/data/state.json
-EXECUTION_MODE=paper
-```
-
-## Safety controls
-
-- Maximum position is capped by account equity and available cash.
-- Fees are included before quantity is calculated.
-- A cash reserve is retained.
-- Negative cash is impossible; the order is rejected if invariants fail.
-- Only one position can exist.
-- Duplicate manual requests are blocked for 5 seconds.
-- Daily loss and daily trade limits are enforced server-side.
-- State is written atomically to `/data/state.json`.
-- `EXECUTION_MODE` must equal `paper`; any other value is rejected.
-
-## Upgrade from the first version
-
-Upload these files over the existing GitHub repository, commit the changes, and Railway will redeploy.
-Then update the Railway variables to the values above and press Reset on the dashboard.
-
-## Real-money transition
-
-Do not convert this deployment to real money by changing one variable. Use the same signal module only after:
-
-1. A meaningful paper-test sample across different conditions.
-2. Fee and fill reconciliation.
-3. A separate Coinbase execution adapter with order previews and status reconciliation.
-4. Restricted Coinbase API permissions and secure secrets.
-5. Independent review of position sizing, duplicate-order controls, and emergency shutdown.
-
-Coinbase real execution is intentionally not included in this package.
+This package deliberately contains no Coinbase authenticated trading adapter.
+A real-money version should be a separate service with restricted credentials,
+order previews, authentication, notional limits, reconciliation, and a kill switch.

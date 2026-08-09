@@ -35,7 +35,6 @@ MIN_EDGE_MULTIPLE = env_float("MIN_EDGE_MULTIPLE", 2.5)
 ENTRY_SCORE = env_float("ENTRY_SCORE", 0.62)
 EXIT_SCORE = env_float("EXIT_SCORE", -0.10)
 DAILY_LOSS_LIMIT_PCT = env_float("DAILY_LOSS_LIMIT_PCT", 0.01)
-MAX_TRADES_PER_DAY = int(os.getenv("MAX_TRADES_PER_DAY", "8"))
 STOP_LOSS_PCT = env_float("STOP_LOSS_PCT", 0.006)
 TAKE_PROFIT_PCT = env_float("TAKE_PROFIT_PCT", 0.018)
 DEFAULT_AUTO = os.getenv("AUTO_TRADING", "false").lower() == "true"
@@ -88,6 +87,7 @@ def initial_state() -> dict[str, Any]:
         "auto_trading": DEFAULT_AUTO,
         "daily_lock": False,
         "last_error": None,
+        "last_entry_time": None,
     }
 
 
@@ -213,6 +213,11 @@ def assert_invariants() -> None:
 
 
 def paper_buy(price: float, reason: str) -> None:
+    last_entry = state.get("last_entry_time")
+    if last_entry:
+        elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(last_entry)).total_seconds()
+        if elapsed < MIN_SECONDS_BETWEEN_ENTRIES:
+            raise HTTPException(400, "Minimum entry cooldown is active.")
     reset_day_if_needed()
     if state.get("daily_lock"):
         raise HTTPException(400, "Daily loss lock is active.")

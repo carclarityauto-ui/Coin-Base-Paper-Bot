@@ -1,3 +1,22 @@
+# Railway Coinbase Paper Bot V3
+
+V3 defaults to a $5,000 paper account and removes the daily trade-count cap.
+
+Safety controls retained:
+- 10% maximum position size (about $500 initially)
+- 1% daily account loss lock (about $50 initially)
+- one open position maximum
+- 60-second minimum interval between entries
+- fee/spread/slippage-aware cost gate
+- hard cash and notional validation
+- paper execution only
+
+Unlimited trade count does not force trades. Entries must still pass the strategy
+and cost filters.
+
+After deploying, apply the variables from `.env.example`, deploy, and click Reset
+on the dashboard to initialize the $5,000 paper balance.
+
 # Railway Coinbase Paper Bot V2
 
 This corrected version fixes the oversized-position bug and adds server-side safety checks.

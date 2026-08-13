@@ -1,47 +1,20 @@
-# Railway Coinbase Paper Bot V4
+# Rapid Multi-Crypto Paper Scalper
 
-A complete rebuild for a **$5,000 paper account** with **no fixed daily trade-count cap**.
+Paper-only Railway bot for BTC-USD, ETH-USD, SOL-USD, and XRP-USD.
 
-## Trading profile
+It scans all configured pairs every few seconds, ranks them by short-term momentum,
+trend, volume, RSI and volatility, then trades the strongest qualifying market.
+There is no fixed daily trade-count cap, but one position is open at a time.
 
-V4 is intentionally more aggressive than V2/V3 while still enforcing hard limits:
+Default $5,000 profile:
+- up to about $500 per position
+- 5-second scans
+- 20-second entry cooldown
+- 0.4% stop
+- 0.8% target
+- 2-minute max hold
+- 2% daily loss shutdown
+- paper execution only
 
-- $5,000 starting paper balance
-- 20% maximum position size: up to about $1,000 initially
-- 0.5% account-risk budget per trade
-- No fixed daily trade-count maximum
-- 60-second minimum interval between entries
-- One open position maximum
-- 2% daily loss shutdown: about $100 initially
-- Four consecutive losses trigger a two-hour entry lock
-- Fee, spread, slippage, volatility, trend, momentum, and volume filters
-- Fixed stop, profit target, trailing stop, and signal-reversal exits
-- Atomic state persistence on `/data`
-- Paper execution only
-
-Unlimited trades means there is no arbitrary count cap. It does **not** force the
-bot to trade. Every entry must pass the signal, market-regime, cost, cooldown,
-loss-lock, cash, and risk checks.
-
-No strategy is guaranteed profitable or “win-proof.”
-
-## Replace the existing Railway project
-
-1. Download and unzip this package.
-2. Upload all files inside the folder to the existing GitHub repository.
-3. Commit directly to `main`.
-4. Railway will redeploy automatically.
-5. Replace all Railway variables using `.env.example`.
-6. Keep the existing volume mounted at `/data`.
-7. Deploy the variable changes.
-8. Open the dashboard and confirm it says **V4**.
-9. Click **Reset** to initialize the $5,000 account.
-10. Keep Auto stopped and run one manual buy/sell sizing test.
-11. Confirm the position is no more than about $1,000.
-12. Then click Start Auto for paper testing.
-
-## Real money
-
-This package deliberately contains no Coinbase authenticated trading adapter.
-A real-money version should be a separate service with restricted credentials,
-order previews, authentication, notional limits, reconciliation, and a kill switch.
+Fast crypto scalping is extremely sensitive to fees and slippage. This package
+does not guarantee profits and contains no real-money Coinbase order adapter.

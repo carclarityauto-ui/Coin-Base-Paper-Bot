@@ -18,3 +18,4 @@ Default $5,000 profile:
 
 Fast crypto scalping is extremely sensitive to fees and slippage. This package
 does not guarantee profits and contains no real-money Coinbase order adapter.
+deployment refresh

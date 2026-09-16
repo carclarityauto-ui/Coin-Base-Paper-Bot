@@ -6,7 +6,7 @@ from fastapi import FastAPI,HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-VERSION="Rapid Multi-Crypto V2"
+VERSION="Multi-Crypto Active Scalper V3"
 app=FastAPI(title=VERSION)
 app.mount("/static",StaticFiles(directory="app/static"),name="static")
 f=lambda n,d: float(os.getenv(n,str(d)))
@@ -14,15 +14,15 @@ i=lambda n,d: int(os.getenv(n,str(d)))
 PRODUCTS=[x.strip().upper() for x in os.getenv("PRODUCTS","BTC-USD,ETH-USD,SOL-USD,XRP-USD").split(",") if x.strip()]
 STARTING_CASH=f("STARTING_CASH",5000)
 MAX_POSITION_PCT=f("MAX_POSITION_PCT",.10)
-FEE=f("FEE_PCT_PER_SIDE",.004)
+FEE=f("FEE_PCT_PER_SIDE",.001)
 SLIP=f("SLIPPAGE_PCT_PER_SIDE",.0003)
 POLL=max(3,i("POLL_SECONDS",5))
-COOLDOWN=max(10,i("MIN_SECONDS_BETWEEN_ENTRIES",20))
-ENTRY=f("ENTRY_SCORE",.35)
-STOP=f("STOP_LOSS_PCT",.004)
-NET_TARGET=f("NET_PROFIT_TARGET_PCT",.0025)
-MIN_GROSS_TARGET=f("MIN_GROSS_TARGET_PCT",.006)
-MAX_HOLD=max(30,i("MAX_HOLD_SECONDS",120))
+COOLDOWN=max(5,i("MIN_SECONDS_BETWEEN_ENTRIES",10))
+ENTRY=f("ENTRY_SCORE",.12)
+STOP=f("STOP_LOSS_PCT",.0035)
+NET_TARGET=f("NET_PROFIT_TARGET_PCT",.0015)
+MIN_GROSS_TARGET=f("MIN_GROSS_TARGET_PCT",.0035)
+MAX_HOLD=max(30,i("MAX_HOLD_SECONDS",300))
 DAILY_LOSS=f("DAILY_LOSS_LIMIT_PCT",.02)
 AUTO=os.getenv("AUTO_TRADING","false").lower()=="true"
 MODE=os.getenv("EXECUTION_MODE","paper").lower()
@@ -30,7 +30,7 @@ PATH=Path(os.getenv("DATA_PATH","/data/state.json"))
 if MODE!="paper": raise RuntimeError("Paper execution only.")
 if not .01<=MAX_POSITION_PCT<=.25: raise RuntimeError("Bad position cap.")
 if not 0<=FEE<=.02 or not 0<=SLIP<=.01: raise RuntimeError("Bad fee/slippage.")
-client=httpx.AsyncClient(base_url="https://api.exchange.coinbase.com",timeout=10,headers={"User-Agent":"rapid-multicrypto-paper-v2"})
+client=httpx.AsyncClient(base_url="https://api.exchange.coinbase.com",timeout=10,headers={"User-Agent":"multicrypto-active-paper-v3"})
 lock=asyncio.Lock()
 now=lambda: datetime.now(timezone.utc).isoformat()
 today=lambda: datetime.now(timezone.utc).date().isoformat()
@@ -77,8 +77,8 @@ def score(item):
     gross_target=max(MIN_GROSS_TARGET,cost+NET_TARGET)
     return {"product":prod,"price":price,"bid":bid,"ask":ask,"score":s,"rsi":rr,
     "estimated_move_pct":est*100,"round_trip_cost_pct":cost*100,"gross_target_pct":gross_target*100,"net_target_pct":NET_TARGET*100,
-    "buy":bool(s>=ENTRY and est>=gross_target and .0002<=vol<=.05 and 46<=rr<=80),
-    "sell":bool(s<=-.05 or rr>=85)}
+    "buy":bool(s>=ENTRY and est>=max(.0015, gross_target*.55) and .0001<=vol<=.05 and 42<=rr<=82),
+    "sell":bool(s<=-.12 or rr>=88)}
 
 async def scan():
     xs=await asyncio.gather(*[fetch(p) for p in PRODUCTS],return_exceptions=True)
@@ -128,17 +128,17 @@ async def update():
         if state["auto_trading"]:
             if not state["position"] and can_enter():
                 best=next((s for s in sigs if s["buy"]),None)
-                if best: buy(best,"ranked_fast_entry")
+                if best: buy(best,"active_ranked_entry")
             elif state["position"]:
                 p=state["position"]; cur=next((s for s in sigs if s["product"]==p["product"]),None)
                 if cur:
                     move=cur["bid"]/p["entry_price"]-1; held=(datetime.now(timezone.utc)-datetime.fromisoformat(p["entry_time"])).total_seconds()
                     spread=max(0,(cur["ask"]-cur["bid"])/max(cur["price"],1e-12))
                     gross_target=max(MIN_GROSS_TARGET,2*FEE+2*SLIP+spread+NET_TARGET)
-                    if move<=-STOP: sell(cur,"fast_stop")
+                    if move<=-STOP: sell(cur,"active_stop")
                     elif move>=gross_target: sell(cur,"net_profit_target")
-                    elif held>=MAX_HOLD: sell(cur,"fast_timeout")
-                    elif cur["sell"]: sell(cur,"fast_signal_exit")
+                    elif held>=MAX_HOLD: sell(cur,"active_timeout")
+                    elif cur["sell"]: sell(cur,"active_signal_exit")
         mark(); save()
 
 async def loop():

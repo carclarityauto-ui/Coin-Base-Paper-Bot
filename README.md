@@ -1,35 +1,21 @@
-# Rapid Multi-Crypto Paper Scalper V2
+# Multi-Crypto Active Paper Scalper V3
 
 Paper-only Railway bot for BTC-USD, ETH-USD, SOL-USD, and XRP-USD.
 
-It scans all four markets every few seconds and ranks them using short-term momentum,
-trend, volume, RSI, volatility, and spread. All four are eligible to trade; the bot
-rotates into the strongest qualifying setup and keeps one position open at a time.
+V3 is intentionally more active than V2. It scans every 5 seconds, ranks all four markets using short-term momentum, EMA trend, volume, RSI and volatility, and opens the strongest qualifying setup. It still allows only one open position at a time.
 
-The V2 exit logic is cost-aware. Instead of assuming a fixed gross target is profit,
-it estimates round-trip fees, slippage, and spread, then requires the exit target to
-cover those costs plus a configurable net paper-profit target.
-
-Default $5,000 paper profile:
-- BTC-USD, ETH-USD, SOL-USD, XRP-USD
-- up to about $500 per position
-- 5-second scans
-- 20-second entry cooldown
-- 0.4% stop
-- 0.25% desired net paper profit after estimated trading costs
-- minimum 0.6% gross target; actual target rises when estimated costs are higher
-- 2-minute max hold
+## Default $5,000 paper profile
+- up to 10% of equity per position
+- 5-second market scans
+- 10-second entry cooldown
+- lower 0.12 entry-score threshold
+- 0.35% stop loss
+- target = estimated round-trip trading cost + 0.15% paper profit, with a 0.35% minimum gross target
+- 5-minute maximum hold
 - 2% daily loss shutdown
 - paper execution only
 
-Important Railway variables:
-- `AUTO_TRADING=true` to let the paper bot trade automatically
-- `PRODUCTS=BTC-USD,ETH-USD,SOL-USD,XRP-USD`
-- `FEE_PCT_PER_SIDE=0.004` is only a simulation assumption; set it to the fee rate you want to model
-- `SLIPPAGE_PCT_PER_SIDE=0.0003`
-- `NET_PROFIT_TARGET_PCT=0.0025`
-- `MIN_GROSS_TARGET_PCT=0.006`
-- `STOP_LOSS_PCT=0.004`
+## Important fee assumption
+V3 defaults to a simulated 0.10% fee per side plus 0.03% slippage per side. Actual exchange fees vary by account, tier, order type and market. Change `FEE_PCT_PER_SIDE` to the fee assumption you want to test. A strategy that appears profitable under unrealistically low simulated costs may lose money with actual costs.
 
-Fast scalping is highly sensitive to fees, spread, slippage, latency, and market moves.
-This package does not guarantee profits and contains no real-money Coinbase order adapter.
+This software does not guarantee profits and contains no real-money order adapter.

@@ -6,31 +6,31 @@ from fastapi import FastAPI,HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-VERSION="Multi-Crypto Active Scalper V3"
+VERSION="Multi-Crypto High-Risk Paper Scalper V4"
 app=FastAPI(title=VERSION)
 app.mount("/static",StaticFiles(directory="app/static"),name="static")
 f=lambda n,d: float(os.getenv(n,str(d)))
 i=lambda n,d: int(os.getenv(n,str(d)))
 PRODUCTS=[x.strip().upper() for x in os.getenv("PRODUCTS","BTC-USD,ETH-USD,SOL-USD,XRP-USD").split(",") if x.strip()]
 STARTING_CASH=f("STARTING_CASH",5000)
-MAX_POSITION_PCT=f("MAX_POSITION_PCT",.10)
+MAX_POSITION_PCT=f("MAX_POSITION_PCT",.25)
 FEE=f("FEE_PCT_PER_SIDE",.001)
 SLIP=f("SLIPPAGE_PCT_PER_SIDE",.0003)
 POLL=max(3,i("POLL_SECONDS",5))
-COOLDOWN=max(5,i("MIN_SECONDS_BETWEEN_ENTRIES",10))
-ENTRY=f("ENTRY_SCORE",.12)
-STOP=f("STOP_LOSS_PCT",.0035)
-NET_TARGET=f("NET_PROFIT_TARGET_PCT",.0015)
-MIN_GROSS_TARGET=f("MIN_GROSS_TARGET_PCT",.0035)
-MAX_HOLD=max(30,i("MAX_HOLD_SECONDS",300))
-DAILY_LOSS=f("DAILY_LOSS_LIMIT_PCT",.02)
+COOLDOWN=max(3,i("MIN_SECONDS_BETWEEN_ENTRIES",5))
+ENTRY=f("ENTRY_SCORE",.02)
+STOP=f("STOP_LOSS_PCT",.006)
+NET_TARGET=f("NET_PROFIT_TARGET_PCT",.0010)
+MIN_GROSS_TARGET=f("MIN_GROSS_TARGET_PCT",.0025)
+MAX_HOLD=max(30,i("MAX_HOLD_SECONDS",180))
+DAILY_LOSS=f("DAILY_LOSS_LIMIT_PCT",.08)
 AUTO=os.getenv("AUTO_TRADING","false").lower()=="true"
 MODE=os.getenv("EXECUTION_MODE","paper").lower()
 PATH=Path(os.getenv("DATA_PATH","/data/state.json"))
 if MODE!="paper": raise RuntimeError("Paper execution only.")
 if not .01<=MAX_POSITION_PCT<=.25: raise RuntimeError("Bad position cap.")
 if not 0<=FEE<=.02 or not 0<=SLIP<=.01: raise RuntimeError("Bad fee/slippage.")
-client=httpx.AsyncClient(base_url="https://api.exchange.coinbase.com",timeout=10,headers={"User-Agent":"multicrypto-active-paper-v3"})
+client=httpx.AsyncClient(base_url="https://api.exchange.coinbase.com",timeout=10,headers={"User-Agent":"multicrypto-high-risk-paper-v4"})
 lock=asyncio.Lock()
 now=lambda: datetime.now(timezone.utc).isoformat()
 today=lambda: datetime.now(timezone.utc).date().isoformat()
@@ -75,10 +75,15 @@ def score(item):
     s=.30*clip(trend/.001)+.22*clip(mom/.001)+.18*clip(regime/.0015)+.15*clip((vr-1)/.35)+.15*clip((rr-50)/18)
     cost=2*FEE+2*SLIP+spread; est=max(vol*2.5,abs(trend)*2.2,abs(mom)*2.5)
     gross_target=max(MIN_GROSS_TARGET,cost+NET_TARGET)
+    blockers=[]
+    if s < ENTRY: blockers.append(f"score {s:.3f} < {ENTRY:.3f}")
+    if est < .0005: blockers.append(f"estimated move {est*100:.3f}% < 0.050%")
+    if not (.00002 <= vol <= .08): blockers.append(f"volatility {vol*100:.3f}% outside range")
+    if not (35 <= rr <= 88): blockers.append(f"RSI {rr:.1f} outside 35-88")
     return {"product":prod,"price":price,"bid":bid,"ask":ask,"score":s,"rsi":rr,
     "estimated_move_pct":est*100,"round_trip_cost_pct":cost*100,"gross_target_pct":gross_target*100,"net_target_pct":NET_TARGET*100,
-    "buy":bool(s>=ENTRY and est>=max(.0015, gross_target*.55) and .0001<=vol<=.05 and 42<=rr<=82),
-    "sell":bool(s<=-.12 or rr>=88)}
+    "blockers":blockers,"buy":bool(not blockers),
+    "sell":bool(s<=-.08 or rr>=90)}
 
 async def scan():
     xs=await asyncio.gather(*[fetch(p) for p in PRODUCTS],return_exceptions=True)

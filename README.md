@@ -1,21 +1,11 @@
-# Multi-Crypto Active Paper Scalper V3
+# Multi-Crypto High-Risk Paper Scalper V4
 
 Paper-only Railway bot for BTC-USD, ETH-USD, SOL-USD, and XRP-USD.
 
-V3 is intentionally more active than V2. It scans every 5 seconds, ranks all four markets using short-term momentum, EMA trend, volume, RSI and volatility, and opens the strongest qualifying setup. It still allows only one open position at a time.
+V4 is intentionally aggressive for paper testing. It uses up to 25% of paper equity per position, a low entry-score threshold, a 5-second entry cooldown, wider RSI/volatility gates, a 0.6% stop, a 3-minute maximum hold, and an 8% daily paper-loss shutdown. One position is open at a time.
 
-## Default $5,000 paper profile
-- up to 10% of equity per position
-- 5-second market scans
-- 10-second entry cooldown
-- lower 0.12 entry-score threshold
-- 0.35% stop loss
-- target = estimated round-trip trading cost + 0.15% paper profit, with a 0.35% minimum gross target
-- 5-minute maximum hold
-- 2% daily loss shutdown
-- paper execution only
+The dashboard now reports the exact blockers for each market when an entry is rejected. This makes it possible to tune the strategy from observed paper results instead of simply forcing trades.
 
-## Important fee assumption
-V3 defaults to a simulated 0.10% fee per side plus 0.03% slippage per side. Actual exchange fees vary by account, tier, order type and market. Change `FEE_PCT_PER_SIDE` to the fee assumption you want to test. A strategy that appears profitable under unrealistically low simulated costs may lose money with actual costs.
+Exit targets remain cost-aware: the bot estimates round-trip fees, slippage and spread and requires a gross target intended to cover those costs plus the configured net-paper-profit target.
 
-This software does not guarantee profits and contains no real-money order adapter.
+**Paper execution only. High risk does not guarantee profits.** Frequent scalping can lose money quickly after fees, slippage, adverse moves and false signals.

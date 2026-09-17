@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-VERSION="Multi-Market Paper Lab V6"
+VERSION="Multi-Market Paper Lab V6.1"
 app=FastAPI(title=VERSION); app.mount("/static",StaticFiles(directory="app/static"),name="static")
 f=lambda n,d: float(os.getenv(n,str(d))); i=lambda n,d: int(os.getenv(n,str(d)))
 def positive_env(primary, fallback, default):
@@ -23,7 +23,7 @@ STOP=f("STOP_LOSS_PCT",.006); TRAIL=f("TRAILING_STOP_PCT",.004); HOLD=i("MAX_HOL
 AUTO=os.getenv("AUTO_TRADING","true").lower()=="true"; PATH=Path(os.getenv("DATA_PATH","/data/multimarket-v5.json"))
 UNIVERSES={"crypto":["BTC-USD","ETH-USD","SOL-USD","XRP-USD"],"stocks":["SPY","QQQ","AAPL","NVDA"],"futures":["ES=F","NQ=F","YM=F","RTY=F"]}
 COST_SIDE={"crypto":f("CRYPTO_FEE_PCT_PER_SIDE",.001)+f("CRYPTO_SLIPPAGE_PCT_PER_SIDE",.0003),"stocks":f("STOCK_COST_PCT_PER_SIDE",.0002),"futures":f("FUTURES_COST_PCT_PER_SIDE",.0002)}
-client=httpx.AsyncClient(timeout=12,headers={"User-Agent":"Mozilla/5.0 MultiMarketPaperLab/6"}); lock=asyncio.Lock()
+client=httpx.AsyncClient(timeout=12,headers={"User-Agent":"Mozilla/5.0 MultiMarketPaperLab/6.1"}); lock=asyncio.Lock()
 now=lambda: datetime.now(timezone.utc).isoformat(); today=lambda: datetime.now(timezone.utc).date().isoformat()
 def sleeve(): return {"cash":START,"equity":START,"day_start":START,"daily_pnl":0,"realized_pnl":0,"gross_pnl":0,"costs":0,"position":None,"entries":0,"wins":0,"losses":0,"peak":START,"max_drawdown_pct":0,"rankings":[],"trades":[],"daily_lock":False}
 def fresh(): return {"version":VERSION,"day":today(),"auto_trading":AUTO,"updated_at":None,"last_error":None,"sleeves":{k:sleeve() for k in UNIVERSES}}

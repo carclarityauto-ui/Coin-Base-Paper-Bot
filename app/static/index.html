@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Multi-Market Paper Lab V6</title>
+<title>Multi-Market Paper Lab V6.1</title>
 <style>
 body{font-family:system-ui,-apple-system,sans-serif;background:#0d1118;color:#eee;max-width:1180px;margin:auto;padding:20px}
 .note,.c{background:#18202b;border:1px solid #344055;border-radius:12px;padding:14px;margin:10px 0}
@@ -19,8 +19,13 @@ small{opacity:.75}
 </style>
 </head>
 <body>
-<h1>Multi-Market Paper Lab V6</h1>
+<h1>Multi-Market Paper Lab V6.1</h1>
 <div class="note"><b>Paper money only.</b> BTC, ETH, SOL, XRP plus stock/ETF and futures-proxy paper sleeves. Each sleeve starts with its own paper balance. No profit guarantee.</div>
+<div class="c" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<span id="runDot" style="font-size:24px">●</span>
+<strong id="runText">Checking bot…</strong>
+<small id="scanText"></small>
+</div>
 <button onclick="post('/api/auto/start')">Start Auto</button>
 <button onclick="post('/api/auto/stop')">Stop Auto</button>
 <button onclick="resetAll()">Reset All</button>
@@ -32,7 +37,11 @@ const pct=x=>Number(x??0).toFixed(2)+'%';
 async function load(){
   try{
     const s=await fetch('/api/status?'+Date.now(),{cache:'no-store'}).then(r=>r.json());
-    top.innerHTML=' &nbsp; Auto: <b class="'+(s.auto_trading?'ok':'bad')+'">'+(s.auto_trading?'RUNNING':'STOPPED')+'</b>'+(s.last_error?' | Error: '+s.last_error:'');
+    top.innerHTML=s.last_error?' <span class="bad">Error: '+s.last_error+'</span>':'';
+    runText.textContent=s.auto_trading?'AUTO TRADING: RUNNING':'AUTO TRADING: STOPPED';
+    runText.className=s.auto_trading?'ok':'bad';
+    runDot.className=s.auto_trading?'ok':'bad';
+    scanText.textContent=s.auto_trading?'Market scanner is active':'Click Start Auto to run the scanner';
     markets.innerHTML=Object.entries(s.sleeves||{}).map(([m,x])=>{
       const wins=Number(x.wins||0), losses=Number(x.losses||0);
       const wr=(wins+losses)?100*wins/(wins+losses):0;

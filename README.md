@@ -1,12 +1,10 @@
-# Multi-Market Paper Lab V6
+# Multi-Market Paper Lab V6.1
 
 Paper-only Railway trading research bot.
 
-Markets:
-- Crypto: BTC-USD, ETH-USD, SOL-USD, XRP-USD
-- Stocks/ETFs: SPY, QQQ, AAPL, NVDA
-- Futures proxies: ES=F, NQ=F, YM=F, RTY=F
+V6.1 adds a prominent live RUNNING / STOPPED indicator. It reads the backend
+automation state every five seconds, so it shows whether Auto Trading is actually active.
 
-V6 fixes the reset/dashboard mismatch from V5. Reset rebuilds clean paper sleeves, and starting cash accepts either `STARTING_CASH_PER_MARKET` or the older `STARTING_CASH` Railway variable.
+Markets: BTC-USD, ETH-USD, SOL-USD, XRP-USD; SPY, QQQ, AAPL, NVDA; ES=F, NQ=F, YM=F, RTY=F.
 
-This is simulation software. It does not place real-money orders and does not guarantee profit.
+Paper trading only. No real-money order adapter and no profit guarantee.

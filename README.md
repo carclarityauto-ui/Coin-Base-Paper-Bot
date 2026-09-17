@@ -1,11 +1,14 @@
-# Multi-Crypto High-Risk Paper Scalper V4
+# Multi-Market Paper Lab V5
 
-Paper-only Railway bot for BTC-USD, ETH-USD, SOL-USD, and XRP-USD.
+Paper-only comparison framework for crypto, liquid U.S. stocks/ETFs, and index-futures price series.
 
-V4 is intentionally aggressive for paper testing. It uses up to 25% of paper equity per position, a low entry-score threshold, a 5-second entry cooldown, wider RSI/volatility gates, a 0.6% stop, a 3-minute maximum hold, and an 8% daily paper-loss shutdown. One position is open at a time.
+Default universes:
+- Crypto: BTC-USD, ETH-USD, SOL-USD, XRP-USD (Coinbase public market data)
+- Stocks/ETFs: SPY, QQQ, AAPL, NVDA (public Yahoo chart data)
+- Futures proxies: ES=F, NQ=F, YM=F, RTY=F (public Yahoo chart data)
 
-The dashboard now reports the exact blockers for each market when an entry is rejected. This makes it possible to tune the strategy from observed paper results instead of simply forcing trades.
+Each market gets a separate $5,000 paper sleeve so results are directly comparable. The futures sleeve is a normalized price-return simulation, not exchange-accurate contract/margin accounting.
 
-Exit targets remain cost-aware: the bot estimates round-trip fees, slippage and spread and requires a gross target intended to cover those costs plus the configured net-paper-profit target.
+V5 is cost-aware: entries require estimated movement to exceed modeled round-trip costs by a safety margin. It records gross P/L, fees/costs, net P/L, win/loss counts, drawdown, blockers, and recent trades for each market.
 
-**Paper execution only. High risk does not guarantee profits.** Frequent scalping can lose money quickly after fees, slippage, adverse moves and false signals.
+This is research software, not a profit guarantee, and it contains no real-money broker/order adapter.

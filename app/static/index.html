@@ -1,4 +1,69 @@
-<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Multi-Market Paper Lab V5</title>
-<style>body{font-family:system-ui;background:#0d1118;color:#eee;max-width:1180px;margin:auto;padding:20px}.note,.c{background:#18202b;border:1px solid #344055;border-radius:12px;padding:14px;margin:10px 0}.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.market{margin:22px 0}button{padding:11px;margin:6px;border:0;border-radius:8px;font-weight:700}table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:7px;border-bottom:1px solid #344055;text-align:left}pre{white-space:pre-wrap;font-size:12px}.pos{font-size:13px}</style>
-<h1>Multi-Market Paper Lab V5</h1><div class=note><b>Paper money only.</b> Side-by-side test of crypto, stocks/ETFs and index-futures price series. Each market starts with its own $5,000 paper sleeve. Futures are normalized return simulations, not contract/margin accounting.</div><button onclick="p('/api/auto/start')">Start Auto</button><button onclick="p('/api/auto/stop')">Stop Auto</button><button onclick="p('/api/reset')">Reset All</button><span id=top></span><div id=markets></div>
-<script>const money=x=>Number(x||0).toLocaleString(undefined,{style:'currency',currency:'USD'}), pct=x=>Number(x||0).toFixed(2)+'%';async function load(){let s=await fetch('/api/status?'+Date.now()).then(r=>r.json());top.textContent='  Auto: '+(s.auto_trading?'RUNNING':'STOPPED')+(s.last_error?' | '+s.last_error:'');markets.innerHTML=Object.entries(s.sleeves).map(([m,x])=>{let wr=(x.wins+x.losses)?100*x.wins/(x.wins+x.losses):0;let cards=[['Equity',money(x.equity)],['Net P/L',money(x.realized_pnl)],['Gross P/L',money(x.gross_pnl)],['Costs',money(x.costs)],['Entries',x.entries],['Win rate',pct(wr)],['Max DD',pct(x.max_drawdown_pct)],['Daily P/L',money(x.daily_pnl)]];let ranks=(x.rankings||[]).map(q=>({symbol:q.symbol,score:+q.score.toFixed(3),price:+q.price.toFixed(4),buy:q.buy,expected:+q.expected_move_pct.toFixed(3),cost:+q.round_trip_cost_pct.toFixed(3),required:+q.required_move_pct.toFixed(3),blockers:q.blockers}));let tr=(x.trades||[]).slice(-8).reverse();return `<section class=market><h2>${m.toUpperCase()}</h2><div class=g>${cards.map(a=>`<div class=c><small>${a[0]}</small><h3>${a[1]}</h3></div>`).join('')}</div><div class=g><div class=c><h3>Rankings / blockers</h3><pre>${JSON.stringify(ranks,null,2)}</pre></div><div class=c><h3>Open position</h3><pre class=pos>${x.position?JSON.stringify(x.position,null,2):'None'}</pre></div></div><div class=c><h3>Recent trades</h3>${tr.length?'<table><tr><th>Symbol</th><th>Side</th><th>Notional</th><th>Cost</th><th>Gross</th><th>Net</th><th>Reason</th></tr>'+tr.map(q=>`<tr><td>${q.symbol}</td><td>${q.side}</td><td>${money(q.notional)}</td><td>${money(q.cost)}</td><td>${money(q.gross_pnl)}</td><td>${money(q.net_pnl)}</td><td>${q.reason}</td></tr>`).join('')+'</table>':'No trades yet.'}</div></section>`}).join('')}async function p(u){await fetch(u,{method:'POST'});load()}load();setInterval(load,5000)</script>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multi-Market Paper Lab V6</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1118;color:#eee;max-width:1180px;margin:auto;padding:20px}
+.note,.c{background:#18202b;border:1px solid #344055;border-radius:12px;padding:14px;margin:10px 0}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}
+.market{margin:28px 0}
+button{padding:11px 15px;margin:6px 6px 6px 0;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:7px;border-bottom:1px solid #344055;text-align:left}
+pre{white-space:pre-wrap;font-size:12px}
+.ok{color:#74d99f}.bad{color:#ff8585}
+h1{margin-bottom:8px}
+small{opacity:.75}
+</style>
+</head>
+<body>
+<h1>Multi-Market Paper Lab V6</h1>
+<div class="note"><b>Paper money only.</b> BTC, ETH, SOL, XRP plus stock/ETF and futures-proxy paper sleeves. Each sleeve starts with its own paper balance. No profit guarantee.</div>
+<button onclick="post('/api/auto/start')">Start Auto</button>
+<button onclick="post('/api/auto/stop')">Stop Auto</button>
+<button onclick="resetAll()">Reset All</button>
+<span id="top"></span>
+<div id="markets"></div>
+<script>
+const money=x=>Number(x??0).toLocaleString(undefined,{style:'currency',currency:'USD'});
+const pct=x=>Number(x??0).toFixed(2)+'%';
+async function load(){
+  try{
+    const s=await fetch('/api/status?'+Date.now(),{cache:'no-store'}).then(r=>r.json());
+    top.innerHTML=' &nbsp; Auto: <b class="'+(s.auto_trading?'ok':'bad')+'">'+(s.auto_trading?'RUNNING':'STOPPED')+'</b>'+(s.last_error?' | Error: '+s.last_error:'');
+    markets.innerHTML=Object.entries(s.sleeves||{}).map(([m,x])=>{
+      const wins=Number(x.wins||0), losses=Number(x.losses||0);
+      const wr=(wins+losses)?100*wins/(wins+losses):0;
+      const cards=[
+        ['Cash',money(x.cash)],['Equity',money(x.equity)],['Net P/L',money(x.realized_pnl)],
+        ['Gross P/L',money(x.gross_pnl)],['Costs',money(x.costs)],['Entries',Number(x.entries||0)],
+        ['Win rate',pct(wr)],['Max DD',pct(x.max_drawdown_pct)],['Daily P/L',money(x.daily_pnl)]
+      ];
+      const ranks=(x.rankings||[]).map(q=>({
+        symbol:q.symbol,score:Number(q.score||0).toFixed(3),price:q.price,buy:q.buy,
+        expected_pct:Number(q.expected_move_pct||0).toFixed(3),
+        cost_pct:Number(q.round_trip_cost_pct||0).toFixed(3),
+        required_pct:Number(q.required_move_pct||0).toFixed(3),blockers:q.blockers||[]
+      }));
+      const tr=(x.trades||[]).slice(-10).reverse();
+      return `<section class="market"><h2>${m.toUpperCase()}</h2>
+      <div class="g">${cards.map(a=>`<div class="c"><small>${a[0]}</small><h3>${a[1]}</h3></div>`).join('')}</div>
+      <div class="g"><div class="c"><h3>Rankings / blockers</h3><pre>${JSON.stringify(ranks,null,2)}</pre></div>
+      <div class="c"><h3>Open position</h3><pre>${x.position?JSON.stringify(x.position,null,2):'None'}</pre></div></div>
+      <div class="c"><h3>Recent trades</h3>${tr.length?`<table><tr><th>Symbol</th><th>Side</th><th>Notional</th><th>Cost</th><th>Gross</th><th>Net</th><th>Reason</th></tr>${tr.map(q=>`<tr><td>${q.symbol}</td><td>${q.side}</td><td>${money(q.notional)}</td><td>${money(q.cost)}</td><td>${money(q.gross_pnl)}</td><td>${money(q.net_pnl)}</td><td>${q.reason}</td></tr>`).join('')}</table>`:'No trades yet.'}</div>
+      </section>`;
+    }).join('');
+  }catch(e){top.innerHTML=' <span class="bad">Dashboard error: '+e+'</span>'}
+}
+async function post(u){await fetch(u,{method:'POST'});await load()}
+async function resetAll(){
+  if(confirm('Reset all paper balances and trade history?')){
+    await post('/api/reset');
+  }
+}
+load(); setInterval(load,5000);
+</script>
+</body>
+</html>

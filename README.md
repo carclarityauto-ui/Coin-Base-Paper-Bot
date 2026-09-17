@@ -1,14 +1,12 @@
-# Multi-Market Paper Lab V5
+# Multi-Market Paper Lab V6
 
-Paper-only comparison framework for crypto, liquid U.S. stocks/ETFs, and index-futures price series.
+Paper-only Railway trading research bot.
 
-Default universes:
-- Crypto: BTC-USD, ETH-USD, SOL-USD, XRP-USD (Coinbase public market data)
-- Stocks/ETFs: SPY, QQQ, AAPL, NVDA (public Yahoo chart data)
-- Futures proxies: ES=F, NQ=F, YM=F, RTY=F (public Yahoo chart data)
+Markets:
+- Crypto: BTC-USD, ETH-USD, SOL-USD, XRP-USD
+- Stocks/ETFs: SPY, QQQ, AAPL, NVDA
+- Futures proxies: ES=F, NQ=F, YM=F, RTY=F
 
-Each market gets a separate $5,000 paper sleeve so results are directly comparable. The futures sleeve is a normalized price-return simulation, not exchange-accurate contract/margin accounting.
+V6 fixes the reset/dashboard mismatch from V5. Reset rebuilds clean paper sleeves, and starting cash accepts either `STARTING_CASH_PER_MARKET` or the older `STARTING_CASH` Railway variable.
 
-V5 is cost-aware: entries require estimated movement to exceed modeled round-trip costs by a safety margin. It records gross P/L, fees/costs, net P/L, win/loss counts, drawdown, blockers, and recent trades for each market.
-
-This is research software, not a profit guarantee, and it contains no real-money broker/order adapter.
+This is simulation software. It does not place real-money orders and does not guarantee profit.

@@ -3,76 +3,75 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Multi-Market Paper Lab V6.1</title>
+<title>Trend Rider V7</title>
 <style>
-body{font-family:system-ui,-apple-system,sans-serif;background:#0d1118;color:#eee;max-width:1180px;margin:auto;padding:20px}
-.note,.c{background:#18202b;border:1px solid #344055;border-radius:12px;padding:14px;margin:10px 0}
-.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px}
-.market{margin:28px 0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#0d1118;color:#eee;max-width:1180px;margin:auto;padding:16px}
+.c{background:#18202b;border:1px solid #344055;border-radius:12px;padding:14px;margin:10px 0}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 button{padding:11px 15px;margin:6px 6px 6px 0;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+.wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
-td,th{padding:7px;border-bottom:1px solid #344055;text-align:left}
-pre{white-space:pre-wrap;font-size:12px}
-.ok{color:#74d99f}.bad{color:#ff8585}
-h1{margin-bottom:8px}
-small{opacity:.75}
+td,th{padding:7px;border-bottom:1px solid #344055;text-align:left;white-space:nowrap}
+.ok{color:#74d99f}.bad{color:#ff8585}.warn{color:#ffd166}
+h1{margin-bottom:4px} h3{margin:4px 0} small{opacity:.75}
 </style>
 </head>
 <body>
-<h1>Multi-Market Paper Lab V6.1</h1>
-<div class="note"><b>Paper money only.</b> BTC, ETH, SOL, XRP plus stock/ETF and futures-proxy paper sleeves. Each sleeve starts with its own paper balance. No profit guarantee.</div>
+<h1>Trend Rider V7</h1>
+<small>Paper money only. Daily trend-following on crypto. No real orders, no profit guarantee.</small>
 <div class="c" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-<span id="runDot" style="font-size:24px">●</span>
-<strong id="runText">Checking bot…</strong>
-<small id="scanText"></small>
+<span id="runDot" style="font-size:24px">●</span><strong id="runText">Checking bot…</strong><small id="upd"></small>
 </div>
 <button onclick="post('/api/auto/start')">Start Auto</button>
 <button onclick="post('/api/auto/stop')">Stop Auto</button>
-<button onclick="resetAll()">Reset All</button>
-<span id="top"></span>
-<div id="markets"></div>
+<button onclick="resetAll()">Reset Paper Account</button>
+<button onclick="refreshBt(this)">Re-run Backtests</button>
+<div id="err"></div>
+<div class="g" id="cards"></div>
+<div class="c"><h3>Markets</h3><small>The bot decides once per day, after each daily candle closes (8 PM Eastern / midnight UTC). Most days it does nothing; that is by design.</small><div class="wrap" id="mk"></div></div>
+<div class="c"><h3>Backtest: these exact rules on past data, with fees</h3><small id="btnote"></small><div class="wrap" id="bt"></div></div>
+<div class="c"><h3>Recent trades</h3><div class="wrap" id="tr"></div></div>
 <script>
-const money=x=>Number(x??0).toLocaleString(undefined,{style:'currency',currency:'USD'});
-const pct=x=>Number(x??0).toFixed(2)+'%';
+const $=id=>document.getElementById(id);
+const money=x=>x==null?'—':Number(x).toLocaleString(undefined,{style:'currency',currency:'USD'});
+const num=(x,d=2)=>x==null?'—':Number(x).toLocaleString(undefined,{maximumFractionDigits:d});
+const pct=x=>x==null?'—':Number(x).toFixed(1)+'%';
+const cls=x=>x>0?'ok':x<0?'bad':'';
 async function load(){
   try{
     const s=await fetch('/api/status?'+Date.now(),{cache:'no-store'}).then(r=>r.json());
-    top.innerHTML=s.last_error?' <span class="bad">Error: '+s.last_error+'</span>':'';
-    runText.textContent=s.auto_trading?'AUTO TRADING: RUNNING':'AUTO TRADING: STOPPED';
-    runText.className=s.auto_trading?'ok':'bad';
-    runDot.className=s.auto_trading?'ok':'bad';
-    scanText.textContent=s.auto_trading?'Market scanner is active':'Click Start Auto to run the scanner';
-    markets.innerHTML=Object.entries(s.sleeves||{}).map(([m,x])=>{
-      const wins=Number(x.wins||0), losses=Number(x.losses||0);
-      const wr=(wins+losses)?100*wins/(wins+losses):0;
-      const cards=[
-        ['Cash',money(x.cash)],['Equity',money(x.equity)],['Net P/L',money(x.realized_pnl)],
-        ['Gross P/L',money(x.gross_pnl)],['Costs',money(x.costs)],['Entries',Number(x.entries||0)],
-        ['Win rate',pct(wr)],['Max DD',pct(x.max_drawdown_pct)],['Daily P/L',money(x.daily_pnl)]
-      ];
-      const ranks=(x.rankings||[]).map(q=>({
-        symbol:q.symbol,score:Number(q.score||0).toFixed(3),price:q.price,buy:q.buy,
-        expected_pct:Number(q.expected_move_pct||0).toFixed(3),
-        cost_pct:Number(q.round_trip_cost_pct||0).toFixed(3),
-        required_pct:Number(q.required_move_pct||0).toFixed(3),blockers:q.blockers||[]
-      }));
-      const tr=(x.trades||[]).slice(-10).reverse();
-      return `<section class="market"><h2>${m.toUpperCase()}</h2>
-      <div class="g">${cards.map(a=>`<div class="c"><small>${a[0]}</small><h3>${a[1]}</h3></div>`).join('')}</div>
-      <div class="g"><div class="c"><h3>Rankings / blockers</h3><pre>${JSON.stringify(ranks,null,2)}</pre></div>
-      <div class="c"><h3>Open position</h3><pre>${x.position?JSON.stringify(x.position,null,2):'None'}</pre></div></div>
-      <div class="c"><h3>Recent trades</h3>${tr.length?`<table><tr><th>Symbol</th><th>Side</th><th>Notional</th><th>Cost</th><th>Gross</th><th>Net</th><th>Reason</th></tr>${tr.map(q=>`<tr><td>${q.symbol}</td><td>${q.side}</td><td>${money(q.notional)}</td><td>${money(q.cost)}</td><td>${money(q.gross_pnl)}</td><td>${money(q.net_pnl)}</td><td>${q.reason}</td></tr>`).join('')}</table>`:'No trades yet.'}</div>
-      </section>`;
-    }).join('');
-  }catch(e){top.innerHTML=' <span class="bad">Dashboard error: '+e+'</span>'}
+    const a=s.account;
+    $('runText').textContent=s.auto_trading?(a.halted?'RUNNING: new trades paused (drawdown limit)':'AUTO TRADING: RUNNING'):'AUTO TRADING: STOPPED';
+    $('runText').className=$('runDot').className=s.auto_trading?(a.halted?'warn':'ok'):'bad';
+    $('upd').textContent=s.updated_at?'Last check '+new Date(s.updated_at).toLocaleString():'';
+    $('err').innerHTML=s.last_error?'<div class="c bad">Data error: '+s.last_error+'</div>':'';
+    const closed=a.wins+a.losses;
+    const cards=[['Equity',money(a.equity)],['Cash',money(a.cash)],['Net P/L (after fees)',money(a.realized_pnl)],
+      ['Fees paid',money(a.fees)],['Closed trades',closed],['Win rate',closed?pct(100*a.wins/closed):'—'],
+      ['Max drawdown',pct(a.max_drawdown_pct)],['Return',pct((a.equity/a.start_cash-1)*100)]];
+    $('cards').innerHTML=cards.map(c=>`<div class="c"><small>${c[0]}</small><h3>${c[1]}</h3></div>`).join('');
+    $('mk').innerHTML='<table><tr><th>Coin</th><th>Price</th><th>Status</th><th>Buy above</th><th>Trend avg</th><th>Position</th><th>Stop</th><th>Open P/L</th></tr>'+
+      Object.entries(s.markets).map(([k,m])=>{const g=m.signal||{},p=m.position;
+        const op=p&&m.price?p.quantity*m.price-p.cost_basis:null;
+        return `<tr><td>${k}</td><td>${money(m.price)}</td><td class="${p?'ok':g.uptrend?'warn':''}">${g.status||'loading…'}</td>
+        <td>${money(g.breakout_level)}</td><td>${money(g.trend_sma)}</td><td>${p?money(p.quantity*(m.price||p.entry_price)):'—'}</td>
+        <td>${p?money(p.stop):'—'}</td><td class="${cls(op)}">${money(op)}</td></tr>`}).join('')+'</table>';
+    const bt=s.backtests||{};
+    $('btnote').textContent=s.backtest_updated?`Each coin starts with $10,000. Fees ${num(s.settings.fee_pct_per_side)}%/side. Past results do not guarantee future results. Updated ${new Date(s.backtest_updated).toLocaleString()}`:'Running first backtest…';
+    $('bt').innerHTML='<table><tr><th>Coin</th><th>Since</th><th>Strategy return</th><th>Max drawdown</th><th>Buy &amp; hold return</th><th>B&amp;H drawdown</th><th>Trades</th><th>Win rate</th><th>Avg win / loss</th><th>Fees</th></tr>'+
+      Object.entries(bt).map(([k,r])=>r.error?`<tr><td>${k}</td><td colspan="9" class="bad">${r.error}</td></tr>`:
+      `<tr><td>${k}</td><td>${r.from}</td><td class="${cls(r.total_return_pct)}">${pct(r.total_return_pct)}</td><td>${pct(r.max_drawdown_pct)}</td>
+      <td>${pct(r.buy_hold_return_pct)}</td><td>${pct(r.buy_hold_max_drawdown_pct)}</td><td>${r.trades}</td><td>${pct(r.win_rate_pct)}</td>
+      <td>${money(r.avg_win)} / ${money(r.avg_loss)}</td><td>${money(r.fees_paid)}</td></tr>`).join('')+'</table>';
+    const t=(s.trades||[]).slice(-15).reverse();
+    $('tr').innerHTML=t.length?'<table><tr><th>Time</th><th>Coin</th><th>Side</th><th>Price</th><th>Size</th><th>Fee</th><th>Net P/L</th><th>Reason</th></tr>'+
+      t.map(q=>`<tr><td>${new Date(q.time).toLocaleString()}</td><td>${q.symbol}</td><td>${q.side}</td><td>${money(q.price)}</td><td>${money(q.notional)}</td><td>${money(q.fee)}</td><td class="${cls(q.net_pnl)}">${money(q.net_pnl)}</td><td>${q.reason}</td></tr>`).join('')+'</table>':'No trades yet. This strategy waits for strong trends, so days or weeks without a trade are normal.';
+  }catch(e){$('err').innerHTML='<div class="c bad">Dashboard error: '+e+'</div>'}
 }
 async function post(u){await fetch(u,{method:'POST'});await load()}
-async function resetAll(){
-  if(confirm('Reset all paper balances and trade history?')){
-    await post('/api/reset');
-  }
-}
-load(); setInterval(load,5000);
+async function resetAll(){if(confirm('Reset the paper account and trade history?'))await post('/api/reset')}
+async function refreshBt(b){b.disabled=true;b.textContent='Running…';await post('/api/backtest/refresh');b.disabled=false;b.textContent='Re-run Backtests'}
+load();setInterval(load,10000);
 </script>
 </body>
 </html>
